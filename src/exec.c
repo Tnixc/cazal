@@ -1,5 +1,7 @@
 #include "lex.h"
 
-// int tick(struct TokenArray *tokens, int *stack) {
-
-// }
+int exec(struct Token *token, struct Stack *stack) {
+  switch (token->type) {
+    
+  }
+}
