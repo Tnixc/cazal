@@ -43,6 +43,8 @@ enum Fn {
   Swap = 'S',
   Duplicate = 'D',
   Pop = 'P', // pop also emits the top value of the stack
+  Floor = 'F',
+  Ceil = 'C',
 };
 
 struct Node {
@@ -50,9 +52,9 @@ struct Node {
   union {
     int i;
     float f;
-    char op;
-    char modifier;
-    char fn;
+    enum Operator op;
+    enum Modifier modifier;
+    enum Fn fn;
     struct NodeArray *defined_fn;
   } value;
 };

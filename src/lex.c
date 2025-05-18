@@ -100,6 +100,8 @@ struct NodeArray *lex(char contents[]) {
                       {"fold", Fold, Fn},
                       {"repeat", Repeat, Modifier},
                       {"keep", Keep, Modifier},
+                      {"floor", Floor, Fn},
+                      {"ceil", Ceil, Fn},
                       {NULL, 0, 0}};
 
       int found = 0;

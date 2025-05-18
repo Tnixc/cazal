@@ -1,29 +1,23 @@
+#include "exec.h"
 #include "lex.h"
 #include "prints.h"
-
-enum State {
-  map,
-  fold,
-  repeat,
-  keep,
-};
-
-struct Stack {
-  union {
-    int int_value;
-    float float_value;
-  } stack;
-  enum State state;
-};
+#include <stdio.h>
+#include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-  char contents[] = "3.14 0xff 0b11111110 08 /* comment 123 */ ~ 12 duplicate "
-                    "12 map fold repeat keep ^"
-                    "( 2 *) ( 3 ( 4 + 4) map ) map";
+  char contents[] = "1 2 + 4 * 66 -";
 
   struct NodeArray *tokens = lex(contents);
-
   print_node_array(tokens);
+
+  struct Stack stack = {-1, 256, NULL};
+  stack.items = malloc(sizeof(struct StackItem) * stack.capacity);
+
+  for (int i = 0; i < tokens->len; i++) {
+    exec(&tokens->tokens[i], &stack);
+    print_stack(&stack);
+    printf("head index: %d\n", stack.head);
+  }
 
   return 0;
 }
