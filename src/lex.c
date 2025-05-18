@@ -1,72 +1,24 @@
+#include "lex.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-enum TokenType {
-  Int = 'i',
-  Float = 'f',
-  Operator = 'o',
-
-  OpenParen = '(',
-  CloseParen = ')',
-  // () are used to denote functions. Functions get pushed onto the stack
-
-  Modifier = 'M',
-  Fn = 'F',
-};
-
-// Operators pop the top 2 values from the stack, and push the result back onto
-// the stack
-enum Operator {
-  Plus = '+',
-  Minus = '-',
-  Multiply = '*',
-  Divide = '/',
-  Modulo = '%',
-  BitwiseAnd = '&',
-  BitwiseOr = '|',
-  BitwiseXor = '^',
-  BitwiseNot = '~',
-};
-
-// Modifiers pop a modifier onto the stack that affects the next function
-enum Modifier {
-  Keep = 'k',
-  Repeat = 'l',
-};
-
-// Functions edit the stack
-enum Fn {
-  Map = 'm',
-  Fold = 'f',
-  Reverse = 'r',
-  Rotate = 'R',
-  Swap = 'S',
-  Duplicate = 'D',
-  Pop = 'P', // pop also emits the top value of the stack
-};
-
-struct Token {
-  enum TokenType type;
-  union {
-    int i;
-    float f;
-    char operator;
-    char modifier;
-    char fn;
-  } value;
-};
-
-struct TokenArray {
-  struct Token tokens[4096];
-  int len;
-};
-
-struct TokenArray *lex(char contents[]) {
-  struct TokenArray *tokens = malloc(sizeof(struct TokenArray));
+struct NodeArray *lex(char contents[]) {
+  struct NodeArray *tokens = malloc(sizeof(struct NodeArray));
   tokens->len = 0;
+  tokens->capacity = 128; // Initial capacity
+  tokens->tokens = malloc(sizeof(struct Node) * tokens->capacity);
+
   for (int i = 0; i < strlen(contents); i++) {
+    // Check if we need to resize the array
+    if (tokens->len >= tokens->capacity) {
+      tokens->capacity *= 2;
+      struct Node *new_tokens =
+          realloc(tokens->tokens, sizeof(struct Node) * tokens->capacity);
+      tokens->tokens = new_tokens;
+    }
+
     if (isdigit(contents[i])) {
       char number[60];
       int j = 0;
@@ -156,7 +108,7 @@ struct TokenArray *lex(char contents[]) {
           found = 1;
 
           tokens->tokens[tokens->len].type = op_table[k].type;
-          tokens->tokens[tokens->len].value.operator= op_table[k].op;
+          tokens->tokens[tokens->len].value.op = op_table[k].op;
           break;
         }
       }
@@ -174,64 +126,82 @@ struct TokenArray *lex(char contents[]) {
       i += 2; // comments
     }
 
-    else if (strchr("+-*/%&|^~()", contents[i]) != NULL) {
+    else if (strchr("+-*/%&|^~", contents[i]) != NULL) {
       tokens->tokens[tokens->len].type = Operator;
 
       switch (contents[i]) {
       case '+':
-        tokens->tokens[tokens->len].value.operator= Plus;
+        tokens->tokens[tokens->len].value.op = Plus;
         break;
       case '-':
-        tokens->tokens[tokens->len].value.operator= Minus;
+        tokens->tokens[tokens->len].value.op = Minus;
         break;
       case '*':
-        tokens->tokens[tokens->len].value.operator= Multiply;
+        tokens->tokens[tokens->len].value.op = Multiply;
         break;
       case '/':
-        tokens->tokens[tokens->len].value.operator= Divide;
+        tokens->tokens[tokens->len].value.op = Divide;
         break;
       case '%':
-        tokens->tokens[tokens->len].value.operator= Modulo;
+        tokens->tokens[tokens->len].value.op = Modulo;
         break;
       case '&':
-        tokens->tokens[tokens->len].value.operator= BitwiseAnd;
+        tokens->tokens[tokens->len].value.op = BitwiseAnd;
         break;
       case '|':
-        tokens->tokens[tokens->len].value.operator= BitwiseOr;
+        tokens->tokens[tokens->len].value.op = BitwiseOr;
         break;
       case '^':
-        tokens->tokens[tokens->len].value.operator= BitwiseXor;
+        tokens->tokens[tokens->len].value.op = BitwiseXor;
         break;
       case '~':
-        tokens->tokens[tokens->len].value.operator= BitwiseNot;
-        break;
-      case '(':
-        tokens->tokens[tokens->len].type = OpenParen;
-        break;
-      case ')':
-        tokens->tokens[tokens->len].type = CloseParen;
+        tokens->tokens[tokens->len].value.op = BitwiseNot;
         break;
       }
-
       tokens->len += 1;
-    }
-  }
+    } else if (contents[i] == '(') {
+      int j = 1; // Start at 1 to account for the opening parenthesis
+      int depth = 1;
 
-  for (int i = 0; i < tokens->len; i++) {
-    printf("%d: ", i);
-    printf("%c -> ", tokens->tokens[i].type);
-    if (tokens->tokens[i].type == Int) {
-      printf("%d\n", tokens->tokens[i].value.i);
-    } else if (tokens->tokens[i].type == Float) {
-      printf("%f\n", tokens->tokens[i].value.f);
-    } else if (tokens->tokens[i].type == Operator) {
-      printf("%c\n", tokens->tokens[i].value.operator);
-    } else if (tokens->tokens[i].type == Modifier) {
-      printf("%c\n", tokens->tokens[i].value.modifier);
-    } else if (tokens->tokens[i].type == Fn) {
-      printf("%c\n", tokens->tokens[i].value.fn);
-    } else {
-      printf("\n");
+      // Find the matching closing parenthesis
+      while (depth > 0 && i + j < strlen(contents)) {
+        if (contents[i + j] == '(') {
+          depth++;
+        } else if (contents[i + j] == ')') {
+          depth--;
+        }
+        j++;
+      }
+
+      if (depth != 0) {
+        fprintf(stderr, "Unmatched parenthesis\n");
+        free(tokens->tokens);
+        free(tokens);
+        exit(1);
+      }
+
+      // Extract the content between parentheses
+      int content_len =
+          j - 2; // Subtract 2 for the opening and closing parentheses
+      char *defined_contents_fn = malloc(sizeof(char) * (content_len + 1));
+      if (defined_contents_fn == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        free(tokens->tokens);
+        free(tokens);
+        exit(1);
+      }
+
+      strncpy(defined_contents_fn, contents + i + 1, content_len);
+      defined_contents_fn[content_len] = '\0';
+
+      struct NodeArray *defined_fn = lex(defined_contents_fn);
+      free(defined_contents_fn);
+
+      tokens->tokens[tokens->len].type = DefinedFn;
+      tokens->tokens[tokens->len].value.defined_fn = defined_fn;
+      tokens->len++;
+
+      i += j - 1; // Move past the closing parenthesis
     }
   }
   return tokens;

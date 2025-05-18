@@ -1,9 +1,9 @@
 # meson.build
-project('ccore', 'c')
+project('cazal', 'c')
 
 src_files = run_command('sh', '-c', 'ls src/*.c', check: true).stdout().strip().split('\n')
 
-executable('ccore', 
+executable('cazal', 
   src_files,
   include_directories: include_directories('src')
 )
