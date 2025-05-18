@@ -16,15 +16,26 @@ int exec(struct Node *node, struct Stack *stack) {
     stack->head += 1;
     break;
   case Operator: {
-    struct IF r = operator_exec(stack, stack->head, node->value.op);
-    if (r.type == I) {
-      stack->items[stack->head - 1].type = IntItem;
-      stack->items[stack->head - 1].value.int_value = r.value.i;
+    int idx = stack->head - 1;
+    if (node->value.op == BitwiseNot) {
+      idx = stack->head;
+      if (stack->items[idx].type == IntItem) {
+        stack->items[idx].value.int_value = ~stack->items[idx].value.int_value;
+      } else {
+        printf("Error: BitwiseNot operator is not supported for floats\n");
+        exit(-1);
+      }
     } else {
-      stack->items[stack->head - 1].type = FloatItem;
-      stack->items[stack->head - 1].value.float_value = r.value.f;
+      struct IF r = operator_exec(stack, stack->head, node->value.op);
+      if (r.type == I) {
+        stack->items[idx].type = IntItem;
+        stack->items[idx].value.int_value = r.value.i;
+      } else {
+        stack->items[idx].type = FloatItem;
+        stack->items[idx].value.float_value = r.value.f;
+      }
     }
-    stack->head -= 1;
+    stack->head = idx;
   } break;
   case Modifier:
   case Fn:
@@ -104,12 +115,7 @@ struct IF operator_exec(struct Stack *stack, int index, enum Operator op) {
     }
     break;
   case BitwiseNot:
-    if (p.type == IntPair) {
-      result.value.i = ~p.value.i[0];
-    } else {
-      printf("Error: BitwiseNot operator is not supported for floats\n");
-      exit(-1);
-    }
+    break;
   }
   return result;
 }

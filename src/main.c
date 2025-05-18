@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-  char contents[] = "1 2 + 4 * 66 -";
+  char contents[] = "0xff ~";
 
   struct NodeArray *tokens = lex(contents);
   print_node_array(tokens);

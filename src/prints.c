@@ -34,9 +34,9 @@ int print_node_array(struct NodeArray *tokens) {
 int print_stack(struct Stack *stack) {
   for (int i = 0; i <= stack->head; i++) {
     if (stack->items[i].type == IntItem) {
-      printf("%d|", stack->items[i].value.int_value);
+      printf(" %d |", stack->items[i].value.int_value);
     } else if (stack->items[i].type == FloatItem) {
-      printf("%f|", stack->items[i].value.float_value);
+      printf(" %f |", stack->items[i].value.float_value);
     }
   }
   printf("\n");
