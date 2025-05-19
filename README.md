@@ -51,12 +51,12 @@ Operators are in postfix notation. For example, `a b +` means "push `a`, push `b
 
 ### Stack Manipulation
 
-| Function    | Description                                                                                                                                        | Effect                           |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| `duplicate` | Duplicates the top value                                                                                                                           | [a] → [a a]                      |
-| `pop`       | Removes and prints the top value                                                                                                                   | [a] → []                         |
-| `reverse`   | Reverses the entire stack                                                                                                                          | [a b c] → [c b a]                |
-| [n] `swap`  | swaps elements on the stack, takes top value as which item(starting from the top, so `1 swap` swaps the top 2 items, excluding the 1) to swap with | [a b c d e] 2 swap → [a b e d c] |
+| Function   | Description                                                                                                                                        | Effect                           |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `dup`      | Duplicates the top value                                                                                                                           | [a] → [a a]                      |
+| `pop`      | Removes and prints the top value                                                                                                                   | [a] → []                         |
+| `reverse`  | Reverses the entire stack                                                                                                                          | [a b c] → [c b a]                |
+| [n] `swap` | swaps elements on the stack, takes top value as which item(starting from the top, so `1 swap` swaps the top 2 items, excluding the 1) to swap with | [a b c d e] 2 swap → [a b e d c] |
 
 ### Higher-Order Functions
 

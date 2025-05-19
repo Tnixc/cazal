@@ -111,7 +111,6 @@ int exec(struct Node *node, struct Stack *stack) {
       stack->head -= 1;
       struct NodeArray *defined_fn =
           stack->items[stack->head + 1].value.defined_fn;
-      struct StackItem initial = stack->items[stack->head];
 
       int iterations = 0;
       int max_iterations = 1000;
