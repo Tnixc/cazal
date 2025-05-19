@@ -5,8 +5,13 @@
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-  char contents[] = "0 1 12 ( duplicate 2 rotate + ) repeat";
-  
+  if (argc != 2) {
+    printf("Usage: %s <code>\n", argv[0]);
+    return 1;
+  }
+
+  char *contents = argv[1];
+
   struct NodeArray *tokens = lex(contents);
   print_node_array(tokens);
 
