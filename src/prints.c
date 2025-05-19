@@ -31,17 +31,27 @@ int print_node_array(struct NodeArray *tokens) {
   return 0;
 }
 
+void print_stack_item(struct StackItem *item) {
+  if (item->type == IntItem) {
+    printf("%d", item->value.int_value);
+  } else if (item->type == FloatItem) {
+    printf("%f", item->value.float_value);
+  } else if (item->type == DefinedFnItem) {
+    printf("DefinedFn");
+    printf("(");
+    print_node_array(item->value.defined_fn);
+    printf(")");
+  } else if (item->type == ModifierItem) {
+    printf("%c", item->value.modifier);
+  } else if (item->type == FnItem) {
+    printf("%c", item->value.function);
+  }
+  printf(" | ");
+}
+
 int print_stack(struct Stack *stack) {
   for (int i = 0; i <= stack->head; i++) {
-    if (stack->items[i].type == IntItem) {
-      printf(" %d |", stack->items[i].value.int_value);
-    } else if (stack->items[i].type == FloatItem) {
-      printf(" %f |", stack->items[i].value.float_value);
-    } else if (stack->items[i].type == DefinedFnItem) {
-      printf("() |");
-    } else if (stack->items[i].type == ModifierItem) {
-      printf(" %c |", stack->items[i].value.modifier);
-    }
+    print_stack_item(&stack->items[i]);
   }
   printf("\n");
   return 0;

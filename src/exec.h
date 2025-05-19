@@ -23,7 +23,8 @@ struct StackItem {
 
 struct Stack {
   int head;
-  struct StackItem items[256];
+  int capacity;
+  struct StackItem *items;
 };
 
 struct Pair {

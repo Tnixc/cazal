@@ -1,10 +1,16 @@
 #include "exec.h"
 #include "lex.h"
 #include "prints.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 int exec(struct Node *node, struct Stack *stack) {
+  if (stack->head >= stack->capacity) {
+    stack->capacity *= 2;
+    stack->items =
+        realloc(stack->items, sizeof(struct StackItem) * stack->capacity);
+  }
   switch (node->type) {
   case Int:
     stack->head += 1;
@@ -63,16 +69,73 @@ int exec(struct Node *node, struct Stack *stack) {
       }
       break;
     }
-    case Map:
+    case Map: {
+      stack->head -= 1;
+      struct NodeArray *defined_fn =
+          stack->items[stack->head + 1].value.defined_fn;
+      for (int i = 0; i <= stack->head; i++) {
+        struct StackItem this = stack->items[i];
+        struct Stack virtual_stack = {0, 32, NULL};
+        virtual_stack.items = malloc(sizeof(struct StackItem) * 32);
+        virtual_stack.items[0] = this;
+        for (int j = 0; j < defined_fn->len; j++) {
+          exec(&defined_fn->tokens[j], &virtual_stack);
+        }
+        stack->items[i] = virtual_stack.items[virtual_stack.head];
+      }
+    } break;
     case Fold:
-    case Reverse:
-    case Rotate:
-    case Swap:
-    case Duplicate:
-    case Pop:
-    case Floor:
-    case Ceil:
+    case Reverse: {
+      int left = 0;
+      int right = stack->head;
+      while (left < right) {
+        struct StackItem temp = stack->items[left];
+        stack->items[left] = stack->items[right];
+        stack->items[right] = temp;
+        left++;
+        right--;
+      }
       break;
+    }
+    case Rotate: {
+      int n = stack->items[stack->head].value.int_value;
+      stack->head -= 1;
+
+      struct StackItem temp = stack->items[stack->head];
+      stack->items[stack->head] = stack->items[stack->head - n];
+      stack->items[stack->head - n] = temp;
+      break;
+    }
+    case Duplicate: {
+      stack->head += 1;
+      stack->items[stack->head] = stack->items[stack->head - 1];
+      break;
+    }
+    case Pop: {
+      print_stack_item(&stack->items[stack->head]);
+      printf("\n");
+      stack->head -= 1;
+      break;
+    }
+    case Floor: {
+      if (stack->items[stack->head].type == FloatItem) {
+        stack->items[stack->head].value.int_value =
+            (int)floor(stack->items[stack->head].value.float_value);
+      } else {
+        printf("Error: Floor operator is only for floats\n");
+        exit(-1);
+      }
+      break;
+    }
+    case Ceil: {
+      if (stack->items[stack->head].type == FloatItem) {
+        stack->items[stack->head].value.int_value =
+            (int)ceil(stack->items[stack->head].value.float_value);
+      } else {
+        printf("Error: Ceil operator is only for floats\n");
+        exit(-1);
+      }
+    } break;
     }
     break;
   case DefinedFn:

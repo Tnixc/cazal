@@ -92,18 +92,12 @@ struct NodeArray *lex(char contents[]) {
         const char *name;
         char op;
         char type;
-      } op_table[] = {{"rotate", Rotate, Fn},
-                      {"swap", Swap, Fn},
-                      {"duplicate", Duplicate, Fn},
-                      {"pop", Pop, Fn},
-                      {"map", Map, Fn},
-                      {"fold", Fold, Fn},
-                      {"repeat", Repeat, Fn},
-                      {"exec", Exec, Fn},
-                      {"keep", Keep, Modifier},
-                      {"floor", Floor, Fn},
-                      {"ceil", Ceil, Fn},
-                      {NULL, 0, 0}};
+      } op_table[] = {{"rotate", Rotate, Fn},   {"duplicate", Duplicate, Fn},
+                      {"pop", Pop, Fn},         {"map", Map, Fn},
+                      {"fold", Fold, Fn},       {"repeat", Repeat, Fn},
+                      {"exec", Exec, Fn},       {"keep", Keep, Modifier},
+                      {"floor", Floor, Fn},     {"ceil", Ceil, Fn},
+                      {"reverse", Reverse, Fn}, {NULL, 0, 0}};
 
       int found = 0;
       for (int k = 0; op_table[k].name != NULL; k++) {
