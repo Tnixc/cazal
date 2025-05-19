@@ -3,3 +3,9 @@ run:
     
 build:
      meson compile -C out
+
+wasm:
+    ./build_wasm.sh
+
+serve:
+    cd web && python -m http.server 8000

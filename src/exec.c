@@ -64,7 +64,7 @@ int exec(struct Node *node, struct Stack *stack) {
         printf("Error: Repeat requires an integer count in head - 2 \n");
         exit(-1);
       }
-      int repeat_count = stack->items[stack->head + 1].value.int_value;
+      long repeat_count = stack->items[stack->head + 1].value.int_value;
       struct NodeArray *defined_fn =
           stack->items[stack->head + 2].value.defined_fn;
       for (int i = 0; i < repeat_count; i++) {
@@ -145,7 +145,7 @@ int exec(struct Node *node, struct Stack *stack) {
         printf("Error: Rotate requires an integer argument\n");
         exit(-1);
       }
-      int n = stack->items[stack->head].value.int_value;
+      long n = stack->items[stack->head].value.int_value;
       stack->head -= 1;
 
       struct StackItem temp = stack->items[stack->head];
@@ -167,7 +167,7 @@ int exec(struct Node *node, struct Stack *stack) {
     case Floor: {
       if (stack->items[stack->head].type == FloatItem) {
         stack->items[stack->head].value.int_value =
-            (int)floor(stack->items[stack->head].value.float_value);
+            (long)floor(stack->items[stack->head].value.float_value);
         stack->items[stack->head].type = IntItem;
       } else {
         printf("Error: Floor operator is only for floats\n");
@@ -178,7 +178,7 @@ int exec(struct Node *node, struct Stack *stack) {
     case Ceil: {
       if (stack->items[stack->head].type == FloatItem) {
         stack->items[stack->head].value.int_value =
-            (int)ceil(stack->items[stack->head].value.float_value);
+            (long)ceil(stack->items[stack->head].value.float_value);
         stack->items[stack->head].type = IntItem;
       } else {
         printf("Error: Ceil operator is only for floats\n");

@@ -13,7 +13,7 @@ struct StackItem {
   enum StackItemType type;
   union {
     struct NodeArray *defined_fn;
-    int int_value;
+    long int_value;
     float float_value;
     enum Modifier modifier;
     enum Fn function;
@@ -28,7 +28,7 @@ struct Stack {
 
 struct Pair {
   union {
-    int i[2];
+    long i[2];
     float f[2];
   } value;
   enum {
@@ -38,7 +38,7 @@ struct Pair {
 };
 
 union IntOrFloat {
-  int i;
+  long i;
   float f;
 };
 

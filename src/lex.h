@@ -50,7 +50,7 @@ enum Fn {
 struct Node {
   enum NodeType type;
   union {
-    int i;
+    long i;
     float f;
     enum Operator op;
     enum Modifier modifier;

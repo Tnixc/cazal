@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cazal Web Interpreter</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            font-family: monospace;
+            padding: 8px;
+        }
+        .output {
+            background-color: #f4f4f4;
+            padding: 10px;
+            white-space: pre-wrap;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        button {
+            margin: 10px 5px 10px 0;
+            padding: 5px 10px;
+        }
+        .controls {
+            display: flex;
+            gap: 5px;
+        }
+        .stack-container {
+            margin-top: 10px;
+        }
+        .stack-item {
+            display: inline-block;
+            padding: 3px 6px;
+            margin: 2px;
+            background-color: #e0e0e0;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cazal Web Interpreter</h1>
+    
+    <textarea id="code" placeholder="Enter Cazal code here...">1 2 + 3 * ( 2 + ) map</textarea>
+    
+    <div class="controls">
+        <button id="run">Run All</button>
+        <button id="step-back">Step Back</button>
+        <button id="step-next">Step Next</button>
+        <button id="reset">Reset</button>
+    </div>
+    
+    <div id="error" class="error" style="display: none;"></div>
+    
+    <h3>Tokens:</h3>
+    <div id="tokens" class="output"></div>
+    
+    <h3>Stack:</h3>
+    <div id="stack" class="output">[ ]</div>
+    
+    <script>
+        // Program state
+        let executionHistory = [];
+        let currentStep = -1;
+        let totalSteps = 0;
+        let hasErrors = false;
+        
+        // DOM elements
+        const codeElement = document.getElementById('code');
+        const tokensElement = document.getElementById('tokens');
+        const stackElement = document.getElementById('stack');
+        const errorElement = document.getElementById('error');
+        
+        // Automatically parse when code changes
+        let parseTimeout;
+        codeElement.addEventListener('input', () => {
+            clearTimeout(parseTimeout);
+            parseTimeout = setTimeout(parseCode, 300); // Debounce input
+        });
+        
+        // Load the WASM module
+        var Module = {
+            onRuntimeInitialized: function() {
+                console.log('WASM module loaded');
+                // Initialize the environment
+                Module.ccall('init_environment', 'void', [], []);
+                
+                // Set up event listeners
+                document.getElementById('run').addEventListener('click', runCode);
+                document.getElementById('step-next').addEventListener('click', stepForward);
+                document.getElementById('step-back').addEventListener('click', stepBackward);
+                document.getElementById('reset').addEventListener('click', resetExecution);
+                
+                // Parse initial code
+                parseCode();
+            },
+            // Capture stderr for error handling
+            printErr: function(text) {
+                showError(text);
+                console.error(text);
+                hasErrors = true;
+            }
+        };
+        
+        function showError(message) {
+            errorElement.textContent = "Error: " + message;
+            errorElement.style.display = 'block';
+        }
+        
+        function hideError() {
+            errorElement.style.display = 'none';
+            hasErrors = false;
+        }
+        
+        function parseCode() {
+            hideError();
+            const code = codeElement.value;
+            try {
+                const tokenCount = Module.ccall('lex_code', 'number', ['string'], [code]);
+                if (tokenCount >= 0) {
+                    const tokensStr = Module.ccall('get_tokens_string', 'string', [], []);
+                    tokensElement.textContent = tokensStr || 'No tokens';
+                    totalSteps = tokenCount;
+                    resetExecution();
+                } else {
+                    tokensElement.textContent = 'Error parsing code';
+                }
+            } catch (e) {
+                showError(e.toString());
+            }
+        }
+        
+        function resetExecution() {
+            executionHistory = [{
+                stackState: "[ ]",
+                stepIndex: -1
+            }];
+            currentStep = 0;
+            updateStackDisplay();
+        }
+        
+        function runCode() {
+            parseCode();
+            if (hasErrors) return;
+            
+            try {
+                const stackSize = Module.ccall('execute_all', 'number', [], []);
+                if (stackSize >= 0) {
+                    const stackStr = Module.ccall('get_stack_string', 'string', [], []);
+                    // Format the stack with brackets
+                    const formattedStack = formatStack(stackStr);
+                    stackElement.innerHTML = formattedStack;
+                    
+                    // Save entire execution as single step for history
+                    executionHistory = [{
+                        stackState: "[ ]",
+                        stepIndex: -1
+                    }, {
+                        stackState: formattedStack,
+                        stepIndex: totalSteps
+                    }];
+                    currentStep = 1;
+                } else {
+                    showError('Error executing code');
+                }
+            } catch (e) {
+                showError(e.toString());
+            }
+        }
+        
+        function formatStack(stackStr) {
+            if (!stackStr || stackStr.trim() === '') return "[ ]";
+            
+            // Process the raw stack string
+            const items = stackStr.trim().split('|').map(item => item.trim()).filter(item => item !== '');
+            
+            if (items.length === 0) return "[ ]";
+            
+            // Create HTML with styled items
+            return "[ " + items.map(item => 
+                `<span class="stack-item">${item}</span>`
+            ).join(' ') + " ]";
+        }
+        
+        function stepForward() {
+            if (hasErrors) return;
+            
+            // If we're at the beginning, parse the code first
+            if (currentStep === 0 && executionHistory.length === 1) {
+                parseCode();
+                if (hasErrors) return;
+            }
+            
+            // If we're at the end of our history but not at the end of execution
+            if (currentStep === executionHistory.length - 1 && executionHistory[currentStep].stepIndex < totalSteps - 1) {
+                try {
+                    const nextStepIndex = executionHistory[currentStep].stepIndex + 1;
+                    const result = Module.ccall('execute_step', 'number', ['number'], [nextStepIndex]);
+                    
+                    if (result >= 0) {
+                        const stackStr = Module.ccall('get_stack_string', 'string', [], []);
+                        const formattedStack = formatStack(stackStr);
+                        
+                        executionHistory.push({
+                            stackState: formattedStack,
+                            stepIndex: nextStepIndex
+                        });
+                        currentStep++;
+                        updateStackDisplay();
+                    } else {
+                        showError('Error executing step');
+                    }
+                } catch (e) {
+                    showError(e.toString());
+                }
+            } 
+            // If we're in the middle of our history
+            else if (currentStep < executionHistory.length - 1) {
+                currentStep++;
+                updateStackDisplay();
+            }
+        }
+        
+        function stepBackward() {
+            if (currentStep > 0) {
+                currentStep--;
+                updateStackDisplay();
+            }
+        }
+        
+        function updateStackDisplay() {
+            if (executionHistory.length > 0 && currentStep >= 0 && currentStep < executionHistory.length) {
+                stackElement.innerHTML = executionHistory[currentStep].stackState;
+            } else {
+                stackElement.innerHTML = "[ ]";
+            }
+        }
+    </script>
+    <script async src="cazal.js"></script>
+</body>
+</html> 
