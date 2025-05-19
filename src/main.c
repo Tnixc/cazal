@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-  char contents[] = "1 2 3 4 5 6 (2 *) map";
+  char contents[] = "0 1 2 3 4 5 6 7 8 9 ( 1 + ) map ( * ) fold"; // 10!
 
   struct NodeArray *tokens = lex(contents);
   print_node_array(tokens);

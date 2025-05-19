@@ -84,7 +84,17 @@ int exec(struct Node *node, struct Stack *stack) {
         stack->items[i] = virtual_stack.items[virtual_stack.head];
       }
     } break;
-    case Fold:
+    case Fold: {
+      stack->head -= 1;
+      struct NodeArray *defined_fn =
+          stack->items[stack->head + 1].value.defined_fn;
+      struct StackItem initial = stack->items[stack->head];
+      while (stack->head > 0) {
+        for (int i = 0; i < defined_fn->len; i++) {
+          exec(&defined_fn->tokens[i], stack);
+        }
+      }
+    }
     case Reverse: {
       int left = 0;
       int right = stack->head;
