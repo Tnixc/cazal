@@ -514,9 +514,10 @@
                             <td>[a b c] → [c b a]</td>
                         </tr>
                         <tr>
-                            <td><code>rotate</code></td>
-                            <td>Rotates elements on the stack</td>
-                            <td>[a b c d e] 2 rotate → [a c e d c]</td>
+                            <td>[n] <code>swap</code></td>
+                            <td>swaps elements on the stack, takes top value as which item(starting from the top, so
+                                <code>1 swap</code> swaps the top 2 items, excluding the 1) to swap with</td>
+                            <td>[a b c d e] 2 swap → [a b e d c]</td>
                         </tr>
                     </table>
 
@@ -527,19 +528,19 @@
                             <th>Description</th>
                         </tr>
                         <tr>
-                            <td><code>map</code></td>
+                            <td>[fn] <code>map</code></td>
                             <td>Applies a function to each element on the stack</td>
                         </tr>
                         <tr>
-                            <td><code>fold</code></td>
+                            <td>[fn] <code>fold</code></td>
                             <td>Combines stack elements using a function</td>
                         </tr>
                         <tr>
-                            <td><code>repeat</code></td>
-                            <td>Repeats a function n times</td>
+                            <td>[count, fn] <code>repeat</code></td>
+                            <td>Repeats a function n times, where n is the second-to-top value on the stack</td>
                         </tr>
                         <tr>
-                            <td><code>exec</code></td>
+                            <td>[fn] <code>exec</code></td>
                             <td>Executes a function once (1 repeat)</td>
                         </tr>
                     </table>
@@ -578,8 +579,8 @@
                     </ol>
 
                     <h4>Using Repeat</h4>
-                    <pre><code>5 ( 2 * ) repeat</code></pre>
-                    <p>This pushes 5 onto the stack, then repeats the function <code>( 2 * )</code> which doubles the
+                    <pre><code>1 ( 2 * ) 5 repeat</code></pre>
+                    <p>This pushes 1, 5 onto the stack, then repeats the function <code>( 2 * )</code> which doubles the
                         value on the stack. The result is 5 * 2^5 = 160.</p>
 
                     <h4>Using Map and Custom Functions</h4>
