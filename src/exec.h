@@ -7,7 +7,6 @@ enum StackItemType {
   IntItem,
   FloatItem,
   ModifierItem,
-  FnItem,
 };
 
 struct StackItem {

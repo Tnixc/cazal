@@ -43,8 +43,6 @@ void print_stack_item(struct StackItem *item) {
     printf(")");
   } else if (item->type == ModifierItem) {
     printf("%c", item->value.modifier);
-  } else if (item->type == FnItem) {
-    printf("%c", item->value.function);
   }
   printf(" | ");
 }

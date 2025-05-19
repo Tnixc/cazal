@@ -5,8 +5,8 @@
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-  char contents[] = "2 3 keep + 2 4 * ( + ) fold";
-
+  char contents[] = "0 1 12 ( duplicate 2 rotate + ) repeat";
+  
   struct NodeArray *tokens = lex(contents);
   print_node_array(tokens);
 

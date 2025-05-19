@@ -55,18 +55,18 @@ int exec(struct Node *node, struct Stack *stack) {
   case Fn:
     switch (node->value.fn) {
     case Repeat: {
-      if (stack->items[stack->head].type != FnItem) {
-        printf("Error: Repeat requires a function\n");
+      if (stack->items[stack->head].type != DefinedFnItem) {
+        printf("Error: Repeat requires a function in head\n");
         exit(-1);
       }
       stack->head -= 2;
-      if (stack->items[stack->head + 2].type != IntItem) {
-        printf("Error: Repeat requires an integer count\n");
+      if (stack->items[stack->head + 1].type != IntItem) {
+        printf("Error: Repeat requires an integer count in head - 2 \n");
         exit(-1);
       }
-      int repeat_count = stack->items[stack->head + 2].value.int_value;
+      int repeat_count = stack->items[stack->head + 1].value.int_value;
       struct NodeArray *defined_fn =
-          stack->items[stack->head + 1].value.defined_fn;
+          stack->items[stack->head + 2].value.defined_fn;
       for (int i = 0; i < repeat_count; i++) {
         for (int j = 0; j < defined_fn->len; j++) {
           exec(&defined_fn->tokens[j], stack);
@@ -75,7 +75,7 @@ int exec(struct Node *node, struct Stack *stack) {
       break;
     }
     case Exec: {
-      if (stack->items[stack->head].type != FnItem) {
+      if (stack->items[stack->head].type != DefinedFnItem) {
         printf("Error: Exec requires a function\n");
         exit(-1);
       }
@@ -88,7 +88,7 @@ int exec(struct Node *node, struct Stack *stack) {
       break;
     }
     case Map: {
-      if (stack->items[stack->head].type != FnItem) {
+      if (stack->items[stack->head].type != DefinedFnItem) {
         printf("Error: Map requires a function\n");
         exit(-1);
       }
