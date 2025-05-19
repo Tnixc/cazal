@@ -51,21 +51,21 @@ Operators are in postfix notation. For example, `a b +` means "push `a`, push `b
 
 ### Stack Manipulation
 
-| Function    | Description                      | Effect                             |
-| ----------- | -------------------------------- | ---------------------------------- |
-| `duplicate` | Duplicates the top value         | [a] → [a a]                        |
-| `pop`       | Removes and prints the top value | [a] → []                           |
-| `reverse`   | Reverses the entire stack        | [a b c] → [c b a]                  |
-| `rotate`    | Rotates elements on the stack    | [a b c d e] 2 rotate → [a c e d c] |
+| Function    | Description                                                               | Effect                             |
+| ----------- | ------------------------------------------------------------------------- | ---------------------------------- |
+| `duplicate` | Duplicates the top value                                                  | [a] → [a a]                        |
+| `pop`       | Removes and prints the top value                                          | [a] → []                           |
+| `reverse`   | Reverses the entire stack                                                 | [a b c] → [c b a]                  |
+| `rotate`    | Rotates elements on the stack, takes top value as which item to swap with | [a b c d e] 2 rotate → [a c e d c] |
 
 ### Higher-Order Functions
 
-| Function | Description                                     |
-| -------- | ----------------------------------------------- |
-| `map`    | Applies a function to each element on the stack |
-| `fold`   | Combines stack elements using a function        |
-| `repeat` | Repeats a function n times                      |
-| `exec`   | Executes a function once (1 repeat)             |
+| Function             | Description                                                                 |
+| -------------------- | --------------------------------------------------------------------------- |
+| [fn] `map`           | Applies a function to each element on the stack                             |
+| [fn] `fold`          | Combines stack elements using a function                                    |
+| [count, fn] `repeat` | Repeats a function n times, where n is the second-to-top value on the stack |
+| [fn] `exec`          | Executes a function once (1 repeat)                                         |
 
 ### Type Conversion
 
@@ -99,10 +99,10 @@ This calculates 10!:
 ### Using Repeat
 
 ```
-5 ( 2 * ) repeat
+1 ( 2 * ) 5 repeat
 ```
 
-This pushes 5 onto the stack, then repeats the function `( 2 * )` which doubles the value on the stack. The result is 5 \* 2^5 = 160.
+This pushes 1, 5 onto the stack, then repeats the function `( 2 * )` which doubles the value on the stack. The result is 5 \* 2^5 = 160.
 
 ### Using Map and Custom Functions
 
