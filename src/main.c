@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-  char contents[] = "12 (1 2 +)";
+  char contents[] = "12 ( 1 ) 10 repeat";
 
   struct NodeArray *tokens = lex(contents);
   print_node_array(tokens);

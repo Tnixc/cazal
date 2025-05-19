@@ -43,10 +43,21 @@ int exec(struct Node *node, struct Stack *stack) {
   case Fn:
     switch (node->value.fn) {
     case Repeat: {
+      stack->head -= 2;
+      int repeat_count = stack->items[stack->head + 2].value.int_value;
+      struct NodeArray *defined_fn =
+          stack->items[stack->head + 1].value.defined_fn;
+      for (int i = 0; i < repeat_count; i++) {
+        for (int j = 0; j < defined_fn->len; j++) {
+          exec(&defined_fn->tokens[j], stack);
+        }
+      }
+      break;
     }
     case Exec: {
       stack->head -= 1;
-      struct NodeArray *defined_fn = stack->items[stack->head + 1].value.defined_fn;
+      struct NodeArray *defined_fn =
+          stack->items[stack->head + 1].value.defined_fn;
       for (int i = 0; i < defined_fn->len; i++) {
         exec(&defined_fn->tokens[i], stack);
       }
