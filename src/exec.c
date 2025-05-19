@@ -23,9 +23,8 @@ int exec(struct Node *node, struct Stack *stack) {
     stack->items[stack->head].value.float_value = node->value.f;
     break;
   case Operator: {
-    int idx = stack->head - 1;
+    int idx = stack->head;
     if (node->value.op == BitwiseNot) {
-      idx = stack->head;
       if (stack->items[idx].type == IntItem) {
         stack->items[idx].value.int_value = ~stack->items[idx].value.int_value;
       } else {
@@ -33,8 +32,15 @@ int exec(struct Node *node, struct Stack *stack) {
         exit(-1);
       }
     } else {
-      if (stack->items[stack->head].type == ModifierItem) {
+      if (stack->items[idx].type == ModifierItem) {
+        if (stack->items[idx].value.modifier == Keep) {
+          idx = stack->head;
+          stack->head -= 1;
+        }
+      } else {
+        idx = stack->head - 1;
       }
+
       struct IF r = operator_exec(stack, stack->head, node->value.op);
       if (r.type == I) {
         stack->items[idx].type = IntItem;
@@ -49,7 +55,15 @@ int exec(struct Node *node, struct Stack *stack) {
   case Fn:
     switch (node->value.fn) {
     case Repeat: {
+      if (stack->items[stack->head].type != FnItem) {
+        printf("Error: Repeat requires a function\n");
+        exit(-1);
+      }
       stack->head -= 2;
+      if (stack->items[stack->head + 2].type != IntItem) {
+        printf("Error: Repeat requires an integer count\n");
+        exit(-1);
+      }
       int repeat_count = stack->items[stack->head + 2].value.int_value;
       struct NodeArray *defined_fn =
           stack->items[stack->head + 1].value.defined_fn;
@@ -61,6 +75,10 @@ int exec(struct Node *node, struct Stack *stack) {
       break;
     }
     case Exec: {
+      if (stack->items[stack->head].type != FnItem) {
+        printf("Error: Exec requires a function\n");
+        exit(-1);
+      }
       stack->head -= 1;
       struct NodeArray *defined_fn =
           stack->items[stack->head + 1].value.defined_fn;
@@ -70,6 +88,10 @@ int exec(struct Node *node, struct Stack *stack) {
       break;
     }
     case Map: {
+      if (stack->items[stack->head].type != FnItem) {
+        printf("Error: Map requires a function\n");
+        exit(-1);
+      }
       stack->head -= 1;
       struct NodeArray *defined_fn =
           stack->items[stack->head + 1].value.defined_fn;
@@ -82,6 +104,7 @@ int exec(struct Node *node, struct Stack *stack) {
           exec(&defined_fn->tokens[j], &virtual_stack);
         }
         stack->items[i] = virtual_stack.items[virtual_stack.head];
+        free(virtual_stack.items);
       }
     } break;
     case Fold: {
@@ -89,11 +112,21 @@ int exec(struct Node *node, struct Stack *stack) {
       struct NodeArray *defined_fn =
           stack->items[stack->head + 1].value.defined_fn;
       struct StackItem initial = stack->items[stack->head];
-      while (stack->head > 0) {
+
+      int iterations = 0;
+      int max_iterations = 1000;
+
+      while (stack->head > 0 && iterations < max_iterations) {
         for (int i = 0; i < defined_fn->len; i++) {
           exec(&defined_fn->tokens[i], stack);
         }
+        iterations++;
       }
+
+      if (iterations >= max_iterations) {
+        printf("Warning: Fold operation hit maximum iteration limit\n");
+      }
+      break;
     }
     case Reverse: {
       int left = 0;
@@ -108,6 +141,10 @@ int exec(struct Node *node, struct Stack *stack) {
       break;
     }
     case Rotate: {
+      if (stack->items[stack->head].type != IntItem) {
+        printf("Error: Rotate requires an integer argument\n");
+        exit(-1);
+      }
       int n = stack->items[stack->head].value.int_value;
       stack->head -= 1;
 
@@ -131,6 +168,7 @@ int exec(struct Node *node, struct Stack *stack) {
       if (stack->items[stack->head].type == FloatItem) {
         stack->items[stack->head].value.int_value =
             (int)floor(stack->items[stack->head].value.float_value);
+        stack->items[stack->head].type = IntItem;
       } else {
         printf("Error: Floor operator is only for floats\n");
         exit(-1);
@@ -141,6 +179,7 @@ int exec(struct Node *node, struct Stack *stack) {
       if (stack->items[stack->head].type == FloatItem) {
         stack->items[stack->head].value.int_value =
             (int)ceil(stack->items[stack->head].value.float_value);
+        stack->items[stack->head].type = IntItem;
       } else {
         printf("Error: Ceil operator is only for floats\n");
         exit(-1);
@@ -156,6 +195,9 @@ int exec(struct Node *node, struct Stack *stack) {
   case Modifier: {
     switch (node->value.modifier) {
     case Keep:
+      stack->head += 1;
+      stack->items[stack->head].type = ModifierItem;
+      stack->items[stack->head].value.modifier = node->value.modifier;
       break;
     }
   }
