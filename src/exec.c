@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// Define the global execution context
+struct ExecutionContext g_exec_context = {0};
+
 int exec(struct Node *node, struct Stack *stack) {
   if (stack->head >= stack->capacity) {
     stack->capacity *= 2;
@@ -68,8 +71,12 @@ int exec(struct Node *node, struct Stack *stack) {
       struct NodeArray *defined_fn =
           stack->items[stack->head + 2].value.defined_fn;
       for (int i = 0; i < repeat_count; i++) {
+        g_exec_context.repeat_count = i + 1;
+        g_exec_context.parent_token_index = stack->head + 2;
+
         for (int j = 0; j < defined_fn->len; j++) {
-          exec(&defined_fn->tokens[j], stack);
+          exec_with_context(&defined_fn->tokens[j], stack, j, defined_fn->len,
+                            i, -1);
         }
       }
       break;
@@ -82,8 +89,10 @@ int exec(struct Node *node, struct Stack *stack) {
       stack->head -= 1;
       struct NodeArray *defined_fn =
           stack->items[stack->head + 1].value.defined_fn;
+      g_exec_context.parent_token_index = stack->head + 1;
       for (int i = 0; i < defined_fn->len; i++) {
-        exec(&defined_fn->tokens[i], stack);
+        exec_with_context(&defined_fn->tokens[i], stack, i, defined_fn->len, 0,
+                          -1);
       }
       break;
     }
@@ -100,8 +109,10 @@ int exec(struct Node *node, struct Stack *stack) {
         struct Stack virtual_stack = {0, 32, NULL};
         virtual_stack.items = malloc(sizeof(struct StackItem) * 32);
         virtual_stack.items[0] = this;
+        g_exec_context.parent_token_index = stack->head + 1;
         for (int j = 0; j < defined_fn->len; j++) {
-          exec(&defined_fn->tokens[j], &virtual_stack);
+          exec_with_context(&defined_fn->tokens[j], &virtual_stack, j,
+                            defined_fn->len, 0, i);
         }
         stack->items[i] = virtual_stack.items[virtual_stack.head];
         free(virtual_stack.items);
@@ -111,7 +122,6 @@ int exec(struct Node *node, struct Stack *stack) {
       stack->head -= 1;
       struct NodeArray *defined_fn =
           stack->items[stack->head + 1].value.defined_fn;
-      struct StackItem initial = stack->items[stack->head];
 
       int iterations = 0;
       int max_iterations = 1000;
@@ -305,4 +315,51 @@ struct Pair match_types(struct Stack *stack, int index) {
     }
   }
   return p;
+}
+
+// Add the implementation for exec_with_context
+int exec_with_context(struct Node *node, struct Stack *stack, int token_index,
+                      int function_id, int repeat_iter, int map_idx) {
+  // Save previous context
+  int prev_repeat_count = g_exec_context.repeat_count;
+  int prev_parent_token_index = g_exec_context.parent_token_index;
+  int prev_token_index = g_exec_context.current_token_index;
+
+  // Update context
+  if (token_index >= 0) {
+    g_exec_context.current_token_index = token_index;
+  }
+
+  if (function_id >= 0) {
+    g_exec_context.in_function = 1;
+    g_exec_context.function_id = function_id;
+  }
+
+  if (repeat_iter >= 0) {
+    g_exec_context.repeat_count = repeat_iter + 1;
+  }
+
+  if (map_idx >= 0) {
+    g_exec_context.map_index = map_idx;
+  }
+
+  // Execute the node
+  int result = exec(node, stack);
+
+  // Restore previous context
+  g_exec_context.repeat_count = prev_repeat_count;
+  g_exec_context.parent_token_index = prev_parent_token_index;
+  g_exec_context.current_token_index = prev_token_index;
+
+  return result;
+}
+
+// Add reset function
+void reset_execution_context(void) {
+  g_exec_context.in_function = 0;
+  g_exec_context.function_id = -1;
+  g_exec_context.repeat_count = 0;
+  g_exec_context.map_index = -1;
+  g_exec_context.parent_token_index = -1;
+  g_exec_context.current_token_index = -1;
 }

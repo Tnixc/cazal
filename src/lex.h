@@ -1,7 +1,7 @@
 #ifndef LEX_H
 #define LEX_H
 
-struct NodeArray *lex(char contents[]);
+struct NodeArray *lex(const char contents[]);
 
 enum NodeType {
   Int = 'i',

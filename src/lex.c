@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct NodeArray *lex(char contents[]) {
+struct NodeArray *lex(const char contents[]) {
   struct NodeArray *tokens = malloc(sizeof(struct NodeArray));
   tokens->len = 0;
   tokens->capacity = 128; // Initial capacity
@@ -92,7 +92,7 @@ struct NodeArray *lex(char contents[]) {
         const char *name;
         char op;
         char type;
-      } op_table[] = {{"swap", swap, Fn},   {"duplicate", Duplicate, Fn},
+      } op_table[] = {{"swap", swap, Fn},       {"duplicate", Duplicate, Fn},
                       {"pop", Pop, Fn},         {"map", Map, Fn},
                       {"fold", Fold, Fn},       {"repeat", Repeat, Fn},
                       {"exec", Exec, Fn},       {"keep", Keep, Modifier},

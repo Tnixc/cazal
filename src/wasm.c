@@ -14,20 +14,23 @@ static char *g_result_buffer = NULL;
 static size_t g_buffer_size = 0;
 static int g_error_state = 0;
 
+// Change from definition to extern declaration
+extern struct ExecutionContext g_exec_context;
+
 // Initialize the stack
 EMSCRIPTEN_KEEPALIVE
 void init_environment() {
   if (g_stack.items == NULL) {
     g_stack.items = malloc(sizeof(struct StackItem) * g_stack.capacity);
   }
-  
+
   g_stack.head = -1;
-  
+
   if (g_result_buffer == NULL) {
     g_buffer_size = 4096;
     g_result_buffer = malloc(g_buffer_size);
   }
-  
+
   g_error_state = 0;
 }
 
@@ -40,12 +43,12 @@ void cleanup_environment() {
     free(g_tokens);
     g_tokens = NULL;
   }
-  
+
   if (g_stack.items) {
     free(g_stack.items);
     g_stack.items = NULL;
   }
-  
+
   if (g_result_buffer) {
     free(g_result_buffer);
     g_result_buffer = NULL;
@@ -53,10 +56,10 @@ void cleanup_environment() {
 }
 
 // Custom printf replacement that writes to our buffer
-void buffer_printf(const char* format, ...) {
+void buffer_printf(const char *format, ...) {
   va_list args;
   va_start(args, format);
-  
+
   // Make sure we have enough space
   size_t current_len = g_result_buffer ? strlen(g_result_buffer) : 0;
   size_t remaining = g_buffer_size - current_len;
@@ -64,7 +67,7 @@ void buffer_printf(const char* format, ...) {
     g_buffer_size *= 2;
     g_result_buffer = realloc(g_result_buffer, g_buffer_size);
   }
-  
+
   // Append to buffer
   vsprintf(g_result_buffer + current_len, format, args);
   va_end(args);
@@ -84,7 +87,7 @@ int lex_code(const char *code) {
     free(g_tokens->tokens);
     free(g_tokens);
   }
-  
+
   g_error_state = 0;
   g_tokens = lex(code);
   return g_tokens ? g_tokens->len : -1;
@@ -92,10 +95,12 @@ int lex_code(const char *code) {
 
 // WASM-exposed function to get serialized tokens
 EMSCRIPTEN_KEEPALIVE
-const char* get_tokens_string() {
-  if (g_result_buffer) g_result_buffer[0] = '\0';
-  if (!g_tokens) return g_result_buffer;
-  
+const char *get_tokens_string() {
+  if (g_result_buffer)
+    g_result_buffer[0] = '\0';
+  if (!g_tokens)
+    return g_result_buffer;
+
   print_node_array_to_buffer(g_tokens, g_result_buffer, g_buffer_size);
   return g_result_buffer;
 }
@@ -103,17 +108,23 @@ const char* get_tokens_string() {
 // WASM-exposed function to execute code
 EMSCRIPTEN_KEEPALIVE
 int execute_all() {
-  if (!g_tokens) return -1;
-  if (g_error_state != 0) return -1;
-  
+  if (!g_tokens)
+    return -1;
+  if (g_error_state != 0)
+    return -1;
+
   g_stack.head = -1; // Reset stack
-  if (g_result_buffer) g_result_buffer[0] = '\0';
-  
+  if (g_result_buffer)
+    g_result_buffer[0] = '\0';
+
+  reset_execution_context();
+
   for (int i = 0; i < g_tokens->len; i++) {
-    exec(&g_tokens->tokens[i], &g_stack);
-    if (g_error_state != 0) return -1;
+    exec_with_context(&g_tokens->tokens[i], &g_stack, i, -1, -1, -1);
+    if (g_error_state != 0)
+      return -1;
   }
-  
+
   return g_stack.head;
 }
 
@@ -133,40 +144,41 @@ void print_stack_item_to_buffer(struct StackItem *item) {
 
 // WASM-exposed function to get current stack state
 EMSCRIPTEN_KEEPALIVE
-const char* get_stack_string() {
-  if (g_result_buffer) g_result_buffer[0] = '\0';
-  
+const char *get_stack_string() {
+  if (g_result_buffer)
+    g_result_buffer[0] = '\0';
+
   for (int i = 0; i <= g_stack.head; i++) {
     print_stack_item_to_buffer(&g_stack.items[i]);
   }
   buffer_printf("\n");
-  
+
   return g_result_buffer;
 }
 
 // Execute a single step
 EMSCRIPTEN_KEEPALIVE
 int execute_step(int step_index) {
-  if (!g_tokens || step_index < 0 || step_index >= g_tokens->len || g_error_state != 0) 
+  if (!g_tokens || step_index < 0 || step_index >= g_tokens->len ||
+      g_error_state != 0)
     return -1;
-    
-  exec(&g_tokens->tokens[step_index], &g_stack);
-  if (g_error_state != 0) return -1;
-  
+
+  reset_execution_context();
+  exec_with_context(&g_tokens->tokens[step_index], &g_stack, step_index, -1, -1,
+                    -1);
+  if (g_error_state != 0)
+    return -1;
+
   return g_stack.head;
 }
 
 // Get error state
 EMSCRIPTEN_KEEPALIVE
-int get_error_state() {
-  return g_error_state;
-}
+int get_error_state() { return g_error_state; }
 
 // Reset error state
 EMSCRIPTEN_KEEPALIVE
-void reset_error_state() {
-  g_error_state = 0;
-}
+void reset_error_state() { g_error_state = 0; }
 
 // Add this function to reset the stack and error state
 EMSCRIPTEN_KEEPALIVE
@@ -182,30 +194,53 @@ void reset_stack() {
   }
 }
 
+// Remove these function implementations from wasm.c
+// and use them from exec.c instead
+extern void reset_execution_context(void);
+extern int exec_with_context(struct Node *node, struct Stack *stack,
+                             int token_index, int function_id, int repeat_iter,
+                             int map_idx);
+
+// Expose execution context to JavaScript
+EMSCRIPTEN_KEEPALIVE
+const char *get_execution_context() {
+  if (g_result_buffer)
+    g_result_buffer[0] = '\0';
+
+  buffer_printf(
+      "{ \"in_function\": %d, \"function_id\": %d, \"repeat_count\": %d, "
+      "\"map_index\": %d, \"parent_token\": %d, \"current_token\": %d }",
+      g_exec_context.in_function, g_exec_context.function_id,
+      g_exec_context.repeat_count, g_exec_context.map_index,
+      g_exec_context.parent_token_index, g_exec_context.current_token_index);
+
+  return g_result_buffer;
+}
+
 // Main function for standalone WASM execution
 int main(int argc, char *argv[]) {
   init_environment();
-  
+
   if (argc < 2) {
     printf("Usage: %s <code>\n", argv[0]);
     return 1;
   }
-  
+
   char *contents = argv[1];
   struct NodeArray *tokens = lex(contents);
-  
+
   if (g_error_state != 0) {
     printf("Error parsing code\n");
     return g_error_state;
   }
-  
+
   print_node_array(tokens);
-  
+
   struct Stack stack = {-1, 256, NULL};
   stack.items = malloc(sizeof(struct StackItem) * stack.capacity);
-  
+
   for (int i = 0; i < tokens->len; i++) {
-    exec(&tokens->tokens[i], &stack);
+    exec_with_context(&tokens->tokens[i], &stack, i, -1, -1, -1);
     if (g_error_state != 0) {
       printf("Error executing code\n");
       return g_error_state;
@@ -213,11 +248,11 @@ int main(int argc, char *argv[]) {
     printf("head: %d : ", stack.head);
     print_stack(&stack);
   }
-  
+
   free(stack.items);
   free(tokens->tokens);
   free(tokens);
-  
+
   cleanup_environment();
   return 0;
-} 
+}

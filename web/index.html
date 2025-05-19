@@ -358,6 +358,56 @@
                 height: 400px;
             }
         }
+
+        .token.in-function {
+            border: 2px solid var(--highlight-color, #8a3aa9);
+            box-shadow: 0 0 5px var(--highlight-color, #8a3aa9);
+        }
+
+        .function-container {
+            margin-top: 8px;
+            background: var(--ctp-mocha-surface0);
+            border-radius: 4px;
+            padding: 8px;
+            border: 1px solid var(--ctp-mocha-surface2);
+        }
+
+        .function-label {
+            color: var(--ctp-mocha-subtext0);
+            font-size: 0.9em;
+            margin-bottom: 4px;
+        }
+
+        .function-content {
+            margin-top: 8px;
+            background: var(--background-darker, #1e1e2e);
+            border: 1px solid var(--border-color, #45475a);
+            border-radius: 4px;
+            padding: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .repeat-indicator,
+        .map-indicator {
+            display: inline-block;
+            padding: 2px 4px;
+            margin-right: 8px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .repeat-indicator {
+            background: var(--yellow, #f9e2af);
+            color: var(--background, #1e1e2e);
+        }
+
+        .map-indicator {
+            background: var(--teal, #94e2d5);
+            color: var(--background, #1e1e2e);
+        }
     </style>
 </head>
 
@@ -516,7 +566,8 @@
                         <tr>
                             <td>[n] <code>swap</code></td>
                             <td>swaps elements on the stack, takes top value as which item(starting from the top, so
-                                <code>1 swap</code> swaps the top 2 items, excluding the 1) to swap with</td>
+                                <code>1 swap</code> swaps the top 2 items, excluding the 1) to swap with
+                            </td>
                             <td>[a b c d e] 2 swap → [a b e d c]</td>
                         </tr>
                     </table>
@@ -688,28 +739,125 @@
         }
 
         function parseTokensString(tokensStr) {
-            // Simple parser for the tokens string
             const lines = tokensStr.split('\n').filter(line => line.trim() !== '');
-            return lines.map(line => {
-                const match = line.match(/(\d+): (.) -> (.*)/);
-                if (match) {
-                    return {
-                        index: parseInt(match[1]),
-                        type: match[2],
-                        value: match[3]
-                    };
+            const tokens = [];
+            let currentToken = null;
+            let inDefinedFn = false;
+            let currentFnIndex = -1;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+
+                if (line.includes('DefinedFn(')) {
+                    // Start of defined function
+                    const match = line.match(/(\d+): (.) -> DefinedFn\(/);
+                    if (match) {
+                        currentToken = {
+                            index: parseInt(match[1]),
+                            type: match[2],
+                            value: 'Function',
+                            subTokens: []
+                        };
+                        tokens.push(currentToken);
+                        inDefinedFn = true;
+                        currentFnIndex = currentToken.index;
+                    }
+                } else if (line === ')' && inDefinedFn) {
+                    // End of defined function
+                    inDefinedFn = false;
+                    currentFnIndex = -1;
+                } else if (inDefinedFn) {
+                    // Content inside defined function
+                    const match = line.match(/(\d+): (.) -> (.*)/);
+                    if (match) {
+                        currentToken.subTokens.push({
+                            index: parseInt(match[1]),
+                            type: match[2],
+                            value: match[3],
+                            parentIndex: currentFnIndex
+                        });
+                    }
+                } else {
+                    // Regular token outside of defined function
+                    const match = line.match(/(\d+): (.) -> (.*)/);
+                    if (match) {
+                        tokens.push({
+                            index: parseInt(match[1]),
+                            type: match[2],
+                            value: match[3]
+                        });
+                    }
                 }
-                return null;
-            }).filter(token => token !== null);
+            }
+
+            return tokens;
         }
 
         function displayTokens(tokens, currentExecutingIndex = -1) {
-            tokensElement.innerHTML = tokens.map(token => {
+            const context = getExecutionContext();
+
+            tokensElement.innerHTML = '';
+
+            tokens.forEach(token => {
                 const isExecuting = token.index === currentExecutingIndex;
-                return `<span class="token ${isExecuting ? 'executing' : ''}" data-index="${token.index}">
-                    ${token.value}
-                </span>`;
-            }).join(' ');
+                const isInFunction = context &&
+                    context.in_function === 1 &&
+                    context.parent_token === token.index;
+
+                let tokenClass = `token ${isExecuting ? 'executing' : ''}`;
+                if (isInFunction) tokenClass += ' in-function';
+
+                const tokenEl = document.createElement('span');
+                tokenEl.className = tokenClass;
+                tokenEl.dataset.index = token.index;
+
+                // For defined functions, show their content when they're being executed
+                if (token.type === 'D' && token.subTokens) {
+                    // Main token display
+                    tokenEl.textContent = token.value;
+
+                    if (isInFunction || isExecuting) {
+                        const fnContent = document.createElement('div');
+                        fnContent.className = 'function-content';
+
+                        // Add iteration indicator for repeat
+                        if (context && context.repeat_count > 0) {
+                            const repeatIndicator = document.createElement('span');
+                            repeatIndicator.className = 'repeat-indicator';
+                            repeatIndicator.textContent = `Iteration: ${context.repeat_count}`;
+                            fnContent.appendChild(repeatIndicator);
+                        }
+
+                        // Add map index indicator
+                        if (context && context.map_index >= 0) {
+                            const mapIndicator = document.createElement('span');
+                            mapIndicator.className = 'map-indicator';
+                            mapIndicator.textContent = `Map index: ${context.map_index}`;
+                            fnContent.appendChild(mapIndicator);
+                        }
+
+                        // Add subtokens
+                        token.subTokens.forEach(subToken => {
+                            const subEl = document.createElement('span');
+                            const isSubExecuting = context &&
+                                context.in_function === 1 &&
+                                context.function_id === token.index &&
+                                context.current_token === subToken.index;
+
+                            subEl.className = `token ${isSubExecuting ? 'executing' : ''}`;
+                            subEl.textContent = subToken.value;
+                            fnContent.appendChild(subEl);
+                        });
+
+                        tokenEl.appendChild(fnContent);
+                    }
+                } else {
+                    tokenEl.textContent = token.value;
+                }
+
+                tokensElement.appendChild(tokenEl);
+                tokensElement.appendChild(document.createTextNode(' '));
+            });
         }
 
         function resetExecution() {
@@ -834,6 +982,17 @@
                 stackElement.innerHTML = executionHistory[currentStep].stackState;
             } else {
                 stackElement.innerHTML = "[ ]";
+            }
+        }
+
+        // Helper function to get execution context from WASM
+        function getExecutionContext() {
+            try {
+                const contextStr = Module.ccall('get_execution_context', 'string', [], []);
+                return JSON.parse(contextStr);
+            } catch (e) {
+                console.error("Error getting execution context", e);
+                return null;
             }
         }
     </script>
