@@ -31,11 +31,12 @@ enum Operator {
 // Modifiers pop a modifier onto the stack that affects the next function
 enum Modifier {
   Keep = 'k',
-  Repeat = 'l',
 };
 
 // Functions edit the stack
 enum Fn {
+  Repeat = 'l',
+  Exec = 'e',
   Map = 'm',
   Fold = 'f',
   Reverse = 'r',

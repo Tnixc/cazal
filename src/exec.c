@@ -1,19 +1,20 @@
 #include "exec.h"
 #include "lex.h"
+#include "prints.h"
 #include <stdio.h>
 #include <stdlib.h>
 
 int exec(struct Node *node, struct Stack *stack) {
   switch (node->type) {
   case Int:
-    stack->items[stack->head + 1].type = IntItem;
-    stack->items[stack->head + 1].value.int_value = node->value.i;
     stack->head += 1;
+    stack->items[stack->head].type = IntItem;
+    stack->items[stack->head].value.int_value = node->value.i;
     break;
   case Float:
-    stack->items[stack->head + 1].type = FloatItem;
-    stack->items[stack->head + 1].value.float_value = node->value.f;
     stack->head += 1;
+    stack->items[stack->head].type = FloatItem;
+    stack->items[stack->head].value.float_value = node->value.f;
     break;
   case Operator: {
     int idx = stack->head - 1;
@@ -22,10 +23,12 @@ int exec(struct Node *node, struct Stack *stack) {
       if (stack->items[idx].type == IntItem) {
         stack->items[idx].value.int_value = ~stack->items[idx].value.int_value;
       } else {
-        printf("Error: BitwiseNot operator is not supported for floats\n");
+        printf("Error: BitwiseNot operator is only for ints\n");
         exit(-1);
       }
     } else {
+      if (stack->items[stack->head].type == ModifierItem) {
+      }
       struct IF r = operator_exec(stack, stack->head, node->value.op);
       if (r.type == I) {
         stack->items[idx].type = IntItem;
@@ -37,10 +40,41 @@ int exec(struct Node *node, struct Stack *stack) {
     }
     stack->head = idx;
   } break;
-  case Modifier:
   case Fn:
-  case DefinedFn:
+    switch (node->value.fn) {
+    case Repeat: {
+    }
+    case Exec: {
+      stack->head -= 1;
+      struct NodeArray *defined_fn = stack->items[stack->head + 1].value.defined_fn;
+      for (int i = 0; i < defined_fn->len; i++) {
+        exec(&defined_fn->tokens[i], stack);
+      }
+      break;
+    }
+    case Map:
+    case Fold:
+    case Reverse:
+    case Rotate:
+    case Swap:
+    case Duplicate:
+    case Pop:
+    case Floor:
+    case Ceil:
+      break;
+    }
     break;
+  case DefinedFn:
+    stack->head += 1;
+    stack->items[stack->head].type = DefinedFnItem;
+    stack->items[stack->head].value.defined_fn = node->value.defined_fn;
+    break;
+  case Modifier: {
+    switch (node->value.modifier) {
+    case Keep:
+      break;
+    }
+  }
   }
   return 0;
 }
@@ -86,7 +120,7 @@ struct IF operator_exec(struct Stack *stack, int index, enum Operator op) {
     if (p.type == IntPair) {
       result.value.i = p.value.i[0] % p.value.i[1];
     } else {
-      printf("Error: Modulo operator is not supported for floats\n");
+      printf("Error: Modulo operator is only for ints\n");
       exit(-1);
     }
     break;
@@ -94,7 +128,7 @@ struct IF operator_exec(struct Stack *stack, int index, enum Operator op) {
     if (p.type == IntPair) {
       result.value.i = p.value.i[0] & p.value.i[1];
     } else {
-      printf("Error: BitwiseAnd operator is not supported for floats\n");
+      printf("Error: BitwiseAnd operator is only for ints\n");
       exit(-1);
     }
     break;
@@ -102,7 +136,7 @@ struct IF operator_exec(struct Stack *stack, int index, enum Operator op) {
     if (p.type == IntPair) {
       result.value.i = p.value.i[0] | p.value.i[1];
     } else {
-      printf("Error: BitwiseOr operator is not supported for floats\n");
+      printf("Error: BitwiseOr operator is only for ints\n");
       exit(-1);
     }
     break;
@@ -110,7 +144,7 @@ struct IF operator_exec(struct Stack *stack, int index, enum Operator op) {
     if (p.type == IntPair) {
       result.value.i = p.value.i[0] ^ p.value.i[1];
     } else {
-      printf("Error: BitwiseXor operator is not supported for floats\n");
+      printf("Error: BitwiseXor operator is only for ints\n");
       exit(-1);
     }
     break;

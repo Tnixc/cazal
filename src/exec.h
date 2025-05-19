@@ -6,21 +6,24 @@ enum StackItemType {
   DefinedFnItem,
   IntItem,
   FloatItem,
+  ModifierItem,
+  FnItem,
 };
 
 struct StackItem {
   enum StackItemType type;
   union {
-    char **defined_fn;
+    struct NodeArray *defined_fn;
     int int_value;
     float float_value;
+    enum Modifier modifier;
+    enum Fn function;
   } value;
 };
 
 struct Stack {
   int head;
-  int capacity;
-  struct StackItem *items;
+  struct StackItem items[256];
 };
 
 struct Pair {

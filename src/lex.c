@@ -98,7 +98,8 @@ struct NodeArray *lex(char contents[]) {
                       {"pop", Pop, Fn},
                       {"map", Map, Fn},
                       {"fold", Fold, Fn},
-                      {"repeat", Repeat, Modifier},
+                      {"repeat", Repeat, Fn},
+                      {"exec", Exec, Fn},
                       {"keep", Keep, Modifier},
                       {"floor", Floor, Fn},
                       {"ceil", Ceil, Fn},
@@ -177,8 +178,6 @@ struct NodeArray *lex(char contents[]) {
 
       if (depth != 0) {
         fprintf(stderr, "Unmatched parenthesis\n");
-        free(tokens->tokens);
-        free(tokens);
         exit(1);
       }
 
@@ -186,12 +185,6 @@ struct NodeArray *lex(char contents[]) {
       int content_len =
           j - 2; // Subtract 2 for the opening and closing parentheses
       char *defined_contents_fn = malloc(sizeof(char) * (content_len + 1));
-      if (defined_contents_fn == NULL) {
-        fprintf(stderr, "Memory allocation failed\n");
-        free(tokens->tokens);
-        free(tokens);
-        exit(1);
-      }
 
       strncpy(defined_contents_fn, contents + i + 1, content_len);
       defined_contents_fn[content_len] = '\0';

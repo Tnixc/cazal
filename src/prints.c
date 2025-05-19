@@ -20,7 +20,7 @@ int print_node_array(struct NodeArray *tokens) {
     } else if (tokens->tokens[i].type == Fn) {
       printf("%c\n", tokens->tokens[i].value.fn);
     } else if (tokens->tokens[i].type == DefinedFn) {
-      printf("DefinedFn\n");
+      printf("DefinedFn");
       printf("(-------------------------------\n");
       print_node_array(tokens->tokens[i].value.defined_fn);
       printf(")--------------------------------\n");
@@ -37,6 +37,10 @@ int print_stack(struct Stack *stack) {
       printf(" %d |", stack->items[i].value.int_value);
     } else if (stack->items[i].type == FloatItem) {
       printf(" %f |", stack->items[i].value.float_value);
+    } else if (stack->items[i].type == DefinedFnItem) {
+      printf("() |");
+    } else if (stack->items[i].type == ModifierItem) {
+      printf(" %c |", stack->items[i].value.modifier);
     }
   }
   printf("\n");
