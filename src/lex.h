@@ -40,7 +40,7 @@ enum Fn {
   Map = 'm',
   Fold = 'f',
   Reverse = 'r',
-  Rotate = 'R',
+  swap = 'R',
   Duplicate = 'D',
   Pop = 'P', // pop also emits the top value of the stack
   Floor = 'F',

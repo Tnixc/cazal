@@ -140,9 +140,9 @@ int exec(struct Node *node, struct Stack *stack) {
       }
       break;
     }
-    case Rotate: {
+    case swap: {
       if (stack->items[stack->head].type != IntItem) {
-        printf("Error: Rotate requires an integer argument\n");
+        printf("Error: swap requires an integer argument\n");
         exit(-1);
       }
       int n = stack->items[stack->head].value.int_value;
