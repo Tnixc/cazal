@@ -168,6 +168,20 @@ void reset_error_state() {
   g_error_state = 0;
 }
 
+// Add this function to reset the stack and error state
+EMSCRIPTEN_KEEPALIVE
+void reset_stack() {
+  g_stack.head = -1;
+  g_error_state = 0;
+  if (g_stack.items == NULL) {
+    g_stack.items = malloc(sizeof(struct StackItem) * g_stack.capacity);
+  }
+  // Optionally clear stack memory for safety
+  if (g_stack.items) {
+    memset(g_stack.items, 0, sizeof(struct StackItem) * g_stack.capacity);
+  }
+}
+
 // Main function for standalone WASM execution
 int main(int argc, char *argv[]) {
   init_environment();
