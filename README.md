@@ -2,6 +2,8 @@
 
 Cazal is a stack-based programming language where operations are performed on values stored in a stack. Programs are evaluated from left to right, pushing values onto the stack and executing operations that manipulate the stack.
 
+Visit the [Cazal web interpreter](https://cazal.tnixc.space/) to try it out.
+
 ## Core Concepts
 
 ### Stack
