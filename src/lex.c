@@ -92,7 +92,7 @@ struct NodeArray *lex(const char contents[]) {
         const char *name;
         char op;
         char type;
-      } op_table[] = {{"swap", swap, Fn},       {"duplicate", Duplicate, Fn},
+      } op_table[] = {{"swap", swap, Fn},       {"dup", Duplicate, Fn},
                       {"pop", Pop, Fn},         {"map", Map, Fn},
                       {"fold", Fold, Fn},       {"repeat", Repeat, Fn},
                       {"exec", Exec, Fn},       {"keep", Keep, Modifier},
