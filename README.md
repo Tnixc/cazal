@@ -101,7 +101,7 @@ This calculates 10!:
 ### Using Repeat
 
 ```
-1 ( 2 * ) 5 repeat
+1 5 ( 2 * ) repeat
 ```
 
 This pushes 1, 5 onto the stack, then repeats the function `( 2 * )` which doubles the value on the stack. The result is 5 \* 2^5 = 160.
